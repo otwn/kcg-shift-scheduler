@@ -136,3 +136,25 @@ body {
   overflow: hidden;
   box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
 }
+
+/* Mobile responsive toolbar */
+@media (max-width: 640px) {
+  .fc .fc-toolbar {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .fc .fc-toolbar-chunk {
+    display: flex;
+    justify-content: center;
+  }
+
+  .fc .fc-toolbar-title {
+    font-size: 1.2rem;
+  }
+
+  .fc .fc-button {
+    padding: 6px 12px;
+    font-size: 0.875rem;
+  }
+}
