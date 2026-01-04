@@ -121,21 +121,6 @@ export default function SchedulePage() {
 
   return (
     <div className="space-y-6">
-      {/* Legend */}
-      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <div className="flex flex-wrap gap-4">
-          {members.map(member => (
-            <div key={member.id} className="flex items-center gap-2">
-              <div
-                className="w-3 h-3 rounded-full"
-                style={{ backgroundColor: member.color }}
-              />
-              <span className="text-sm text-slate-600">{member.name}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Calendar */}
       <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
         <FullCalendar
@@ -152,6 +137,27 @@ export default function SchedulePage() {
           height="auto"
           dayMaxEvents={3}
         />
+      </div>
+
+      {/* Legend & Hours */}
+      <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
+        <div className="flex flex-wrap gap-4 mb-3">
+          {members.map(member => (
+            <div key={member.id} className="flex items-center gap-2">
+              <div
+                className="w-3 h-3 rounded-full"
+                style={{ backgroundColor: member.color }}
+              />
+              <span className="text-sm text-slate-600">{member.name}</span>
+            </div>
+          ))}
+        </div>
+        <div className="border-t border-slate-200 pt-3">
+          <p className="text-sm text-slate-600">
+            <span className="font-medium text-slate-700">Hours:</span>{' '}
+            Wed 6:45-8:15pm, Sat &amp; Sun 9:30am-12:30pm. No shift 3rd Sun (District Mtg).
+          </p>
+        </div>
       </div>
 
       {/* Assign/Cancel Modal */}
