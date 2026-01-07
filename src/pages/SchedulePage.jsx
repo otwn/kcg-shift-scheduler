@@ -11,10 +11,10 @@ export default function SchedulePage() {
   const [members, setMembers] = useState([])
   const [shifts, setShifts] = useState([])
   const [selectedDate, setSelectedDate] = useState(null)
-  const [existingShift, setExistingShift] = useState(null)
+  const [existingShifts, setExistingShifts] = useState([])
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedMember, setSelectedMember] = useState('')
-  const [cancelReason, setCancelReason] = useState('')
+  const [cancelReasons, setCancelReasons] = useState({})
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
@@ -57,12 +57,12 @@ export default function SchedulePage() {
 
   const handleDateClick = (info) => {
     const dateStr = info.dateStr
-    const existing = shifts.find(s => s.shift_date === dateStr)
+    const existing = shifts.filter(s => s.shift_date === dateStr)
 
     setSelectedDate(dateStr)
-    setExistingShift(existing || null)
-    setSelectedMember(existing?.member_id || '')
-    setCancelReason('')
+    setExistingShifts(existing)
+    setSelectedMember('')
+    setCancelReasons({})
     setIsModalOpen(true)
   }
 
@@ -70,14 +70,10 @@ export default function SchedulePage() {
     if (!selectedMember || !selectedDate) return
 
     try {
-      if (existingShift) {
-        await supabase.from('shifts').delete().eq('id', existingShift.id)
-      }
-
-      await supabase.from('shifts').insert({
+      const { data: newShift } = await supabase.from('shifts').insert({
         member_id: selectedMember,
         shift_date: selectedDate,
-      })
+      }).select('*, members(*)').single()
 
       const member = members.find(m => m.id === selectedMember)
       await supabase.from('history').insert({
@@ -87,28 +83,36 @@ export default function SchedulePage() {
         action: 'assigned',
       })
 
-      setIsModalOpen(false)
+      if (newShift) {
+        setExistingShifts(prev => [...prev, newShift])
+      }
+      setSelectedMember('')
       fetchData()
     } catch (error) {
       console.error('Error assigning shift:', error)
     }
   }
 
-  const handleCancel = async () => {
-    if (!existingShift) return
+  const handleCancel = async (shift) => {
+    if (!shift) return
 
     try {
-      await supabase.from('shifts').delete().eq('id', existingShift.id)
+      await supabase.from('shifts').delete().eq('id', shift.id)
 
       await supabase.from('history').insert({
-        member_id: existingShift.member_id,
-        member_name: existingShift.members?.name || 'Unknown',
+        member_id: shift.member_id,
+        member_name: shift.members?.name || 'Unknown',
         shift_date: selectedDate,
         action: 'cancelled',
-        reason: cancelReason || null,
+        reason: cancelReasons[shift.id] || null,
       })
 
-      setIsModalOpen(false)
+      setExistingShifts(prev => prev.filter(s => s.id !== shift.id))
+      setCancelReasons(prev => {
+        const updated = { ...prev }
+        delete updated[shift.id]
+        return updated
+      })
       fetchData()
     } catch (error) {
       console.error('Error cancelling shift:', error)
@@ -167,75 +171,81 @@ export default function SchedulePage() {
         title={selectedDate ? format(parseISO(selectedDate), 'EEEE, MMMM d, yyyy') : 'Select Date'}
       >
         <div className="space-y-4">
-          {existingShift && (
-            <div className="bg-slate-50 rounded-lg p-4">
-              <p className="text-sm text-slate-500 mb-1">Currently assigned</p>
-              <p className="font-medium text-slate-800 flex items-center gap-2">
-                <span
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: existingShift.members?.color }}
-                />
-                {existingShift.members?.name}
-              </p>
+          {/* Currently assigned members */}
+          {existingShifts.length > 0 && (
+            <div className="space-y-3">
+              <p className="text-sm text-slate-500">Currently assigned</p>
+              {existingShifts.map(shift => (
+                <div key={shift.id} className="bg-slate-50 rounded-lg p-4">
+                  <p className="font-medium text-slate-800 flex items-center gap-2 mb-3">
+                    <span
+                      className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: shift.members?.color }}
+                    />
+                    {shift.members?.name}
+                  </p>
+                  <input
+                    type="text"
+                    value={cancelReasons[shift.id] || ''}
+                    onChange={(e) => setCancelReasons(prev => ({ ...prev, [shift.id]: e.target.value }))}
+                    placeholder="Cancel reason (optional)"
+                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all mb-2"
+                  />
+                  <button
+                    onClick={() => handleCancel(shift)}
+                    className="w-full py-2 text-sm bg-red-50 text-red-600 font-medium rounded-lg hover:bg-red-100 transition-all"
+                  >
+                    Cancel Shift
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">
-              {existingShift ? 'Reassign to' : 'Assign to'}
-            </label>
-            <select
-              value={selectedMember}
-              onChange={(e) => setSelectedMember(e.target.value)}
-              className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
-            >
-              <option value="">Select a person...</option>
-              {members.map(member => (
-                <option key={member.id} value={member.id}>{member.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <button
-            onClick={handleAssign}
-            disabled={!selectedMember}
-            className="w-full py-3 bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            {existingShift ? 'Reassign Shift' : 'Assign Shift'}
-          </button>
-
-          {existingShift && (
-            <>
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-slate-200"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-slate-500">or</span>
-                </div>
+          {/* Divider if there are existing shifts */}
+          {existingShifts.length > 0 && members.filter(m => !existingShifts.some(s => s.member_id === m.id)).length > 0 && (
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-slate-200"></div>
               </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Cancel reason (optional)
-                </label>
-                <textarea
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="e.g., Sick leave, schedule conflict..."
-                  className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all resize-none"
-                  rows={2}
-                />
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-slate-500">Add another</span>
               </div>
-
-              <button
-                onClick={handleCancel}
-                className="w-full py-3 bg-red-50 text-red-600 font-medium rounded-lg hover:bg-red-100 transition-all"
-              >
-                Cancel Shift
-              </button>
-            </>
+            </div>
           )}
+
+          {/* Add new assignment - only show members not already assigned */}
+          {(() => {
+            const availableMembers = members.filter(m => !existingShifts.some(s => s.member_id === m.id))
+            if (availableMembers.length === 0) return null
+            return (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                    Assign to
+                  </label>
+                  <select
+                    value={selectedMember}
+                    onChange={(e) => setSelectedMember(e.target.value)}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"
+                  >
+                    <option value="">Select a person...</option>
+                    {availableMembers.map(member => (
+                      <option key={member.id} value={member.id}>{member.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <button
+                  onClick={handleAssign}
+                  disabled={!selectedMember}
+                  className="w-full py-3 bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                >
+                  Assign Shift
+                </button>
+              </>
+            )
+          })()}
         </div>
       </Modal>
     </div>
