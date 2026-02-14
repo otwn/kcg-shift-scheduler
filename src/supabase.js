@@ -36,8 +36,19 @@ CREATE TABLE members (
   email TEXT,
   phone TEXT,
   color TEXT DEFAULT '#6366f1',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ DEFAULT NULL  -- soft delete timestamp
 );
+
+CREATE INDEX idx_members_deleted_at ON members(deleted_at);
+
+-- View: only active (non-deleted) members
+CREATE OR REPLACE VIEW active_members AS
+  SELECT id, name, email, phone, color, created_at
+  FROM members
+  WHERE deleted_at IS NULL;
+
+GRANT SELECT ON active_members TO anon, authenticated;
 
 -- Shifts table (calendar assignments)
 CREATE TABLE shifts (
@@ -52,8 +63,8 @@ CREATE TABLE history (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   member_id UUID REFERENCES members(id) ON DELETE SET NULL,
   member_name TEXT NOT NULL,
-  shift_date DATE NOT NULL,
-  action TEXT NOT NULL, -- 'assigned' or 'cancelled'
+  shift_date DATE,  -- NULL for member_removed/member_restored actions
+  action TEXT NOT NULL, -- 'assigned', 'cancelled', 'member_removed', 'member_restored'
   reason TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
