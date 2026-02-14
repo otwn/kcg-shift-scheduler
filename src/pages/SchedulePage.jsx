@@ -20,7 +20,7 @@ export default function SchedulePage() {
   const fetchData = useCallback(async () => {
     try {
       const [membersRes, shiftsRes] = await Promise.all([
-        supabase.from('members').select('*').order('name'),
+        supabase.from('active_members').select('*').order('name'),
         supabase.from('shifts').select('*, members(*)'),
       ])
 
