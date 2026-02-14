@@ -39,20 +39,31 @@ export default function HistoryPage() {
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
                     <div className={`w-2 h-2 rounded-full ${
-                      item.action === 'assigned' ? 'bg-green-500' : 'bg-red-500'
+                      item.action === 'assigned' || item.action === 'member_restored'
+                        ? 'bg-green-500'
+                        : 'bg-red-500'
                     }`} />
                     <div>
                       <p className="text-slate-800">
                         <span className="font-medium">{item.member_name}</span>
                         {' '}
-                        <span className={item.action === 'assigned' ? 'text-green-600' : 'text-red-600'}>
-                          {item.action}
+                        <span className={
+                          item.action === 'assigned' || item.action === 'member_restored'
+                            ? 'text-green-600'
+                            : 'text-red-600'
+                        }>
+                          {item.action === 'member_removed' ? 'removed from team'
+                            : item.action === 'member_restored' ? 'restored to team'
+                            : item.action}
                         </span>
-                        {' '}
-                        shift for{' '}
-                        <span className="font-medium">
-                          {format(parseISO(item.shift_date), 'MMM d, yyyy')}
-                        </span>
+                        {item.shift_date && (
+                          <>
+                            {' '}shift for{' '}
+                            <span className="font-medium">
+                              {format(parseISO(item.shift_date), 'MMM d, yyyy')}
+                            </span>
+                          </>
+                        )}
                       </p>
                       {item.reason && (
                         <p className="text-sm text-slate-500 mt-1">

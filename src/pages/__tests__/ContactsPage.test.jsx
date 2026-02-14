@@ -2,30 +2,30 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Mock supabase before importing ContactsPage
-const mockSelect = vi.fn()
-const mockOrder = vi.fn()
-const mockInsert = vi.fn()
+// Separate mock chains for active_members vs members (removed)
+const mockActiveOrder = vi.fn()
+const mockRemovedOrder = vi.fn()
 const mockUpdate = vi.fn()
 const mockEq = vi.fn()
-const mockGte = vi.fn()
+const mockInsert = vi.fn()
+const mockShiftGte = vi.fn()
 
 vi.mock('../../supabase', () => ({
   supabase: {
     from: vi.fn((table) => {
       if (table === 'active_members') {
         return {
-          select: mockSelect.mockReturnValue({
-            order: mockOrder,
+          select: vi.fn().mockReturnValue({
+            order: mockActiveOrder,
           }),
         }
       }
       if (table === 'members') {
         return {
-          select: mockSelect.mockReturnValue({
-            order: mockOrder,
+          select: vi.fn().mockReturnValue({
+            order: vi.fn(), // unused in this path
             not: vi.fn().mockReturnValue({
-              order: mockOrder,
+              order: mockRemovedOrder,
             }),
           }),
           update: mockUpdate.mockReturnValue({
@@ -37,7 +37,7 @@ vi.mock('../../supabase', () => ({
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              gte: mockGte,
+              gte: mockShiftGte,
             }),
           }),
         }
@@ -66,7 +66,8 @@ const MOCK_REMOVED = [
 describe('ContactsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockOrder.mockResolvedValue({ data: MOCK_MEMBERS })
+    mockActiveOrder.mockResolvedValue({ data: MOCK_MEMBERS })
+    mockRemovedOrder.mockResolvedValue({ data: [] })
   })
 
   it('renders active members by default', async () => {
@@ -79,10 +80,9 @@ describe('ContactsPage', () => {
   })
 
   it('soft delete sets deleted_at (not hard delete)', async () => {
-    mockGte.mockResolvedValue({ data: [], count: 0 })
+    mockShiftGte.mockResolvedValue({ data: [], count: 0 })
     mockEq.mockResolvedValue({ data: null })
     mockInsert.mockResolvedValue({ data: null })
-    mockOrder.mockResolvedValue({ data: MOCK_MEMBERS })
 
     const user = userEvent.setup()
     render(<ContactsPage />)
@@ -91,26 +91,22 @@ describe('ContactsPage', () => {
       expect(screen.getByText('Alice')).toBeInTheDocument()
     })
 
-    // Click delete on first member
     const deleteButtons = screen.getAllByLabelText(/remove/i)
     await user.click(deleteButtons[0])
 
-    // Confirmation modal should appear
     await waitFor(() => {
       expect(screen.getByText(/Remove Alice\?/)).toBeInTheDocument()
     })
 
-    // Click the Remove button in the modal
     await user.click(screen.getByRole('button', { name: /^Remove$/i }))
 
-    // Should call update with deleted_at, not delete
     await waitFor(() => {
       expect(mockUpdate).toHaveBeenCalled()
     })
   })
 
   it('shows confirmation modal with shift count', async () => {
-    mockGte.mockResolvedValue({ data: [{ id: 's1' }, { id: 's2' }], count: 2 })
+    mockShiftGte.mockResolvedValue({ data: [{ id: 's1' }, { id: 's2' }], count: 2 })
 
     const user = userEvent.setup()
     render(<ContactsPage />)
@@ -128,7 +124,7 @@ describe('ContactsPage', () => {
   })
 
   it('toast appears after delete with undo button', async () => {
-    mockGte.mockResolvedValue({ data: [], count: 0 })
+    mockShiftGte.mockResolvedValue({ data: [], count: 0 })
     mockEq.mockResolvedValue({ data: null })
     mockInsert.mockResolvedValue({ data: null })
 
@@ -155,7 +151,7 @@ describe('ContactsPage', () => {
   })
 
   it('undo restores member (clears deleted_at)', async () => {
-    mockGte.mockResolvedValue({ data: [], count: 0 })
+    mockShiftGte.mockResolvedValue({ data: [], count: 0 })
     mockEq.mockResolvedValue({ data: null })
     mockInsert.mockResolvedValue({ data: null })
 
@@ -166,7 +162,6 @@ describe('ContactsPage', () => {
       expect(screen.getByText('Alice')).toBeInTheDocument()
     })
 
-    // Delete Alice
     const deleteButtons = screen.getAllByLabelText(/remove/i)
     await user.click(deleteButtons[0])
     await waitFor(() => {
@@ -174,25 +169,19 @@ describe('ContactsPage', () => {
     })
     await user.click(screen.getByRole('button', { name: /^Remove$/i }))
 
-    // Wait for toast
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument()
     })
 
-    // Click undo
     await user.click(screen.getByRole('button', { name: /undo/i }))
 
-    // Should call update to clear deleted_at (null)
     await waitFor(() => {
-      // update called twice: once for delete, once for undo
       expect(mockUpdate).toHaveBeenCalledTimes(2)
     })
   })
 
   it('tab switch shows removed members', async () => {
-    mockOrder
-      .mockResolvedValueOnce({ data: MOCK_MEMBERS })  // active members
-      .mockResolvedValueOnce({ data: MOCK_REMOVED })   // removed members
+    mockRemovedOrder.mockResolvedValue({ data: MOCK_REMOVED })
 
     const user = userEvent.setup()
     render(<ContactsPage />)
@@ -201,7 +190,6 @@ describe('ContactsPage', () => {
       expect(screen.getByText('Alice')).toBeInTheDocument()
     })
 
-    // Click Removed tab
     const removedTab = screen.getByRole('button', { name: /removed/i })
     await user.click(removedTab)
 
