@@ -140,6 +140,32 @@ export default function SchedulePage() {
           }}
           height="auto"
           dayMaxEvents={3}
+          dayCellClassNames={(arg) => {
+            const date = arg.date
+            const dow  = date.getDay()   // 0=Sun … 6=Sat
+            const dom  = date.getDate()  // 1-31
+            const month = date.getMonth() // 0=Jan … 11=Dec
+
+            // January 1st is always a normal shift day — and the KRG day for January
+            if (month === 0 && dom === 1) return ['first-sunday-krg']
+
+            // December 24–31 are always greyed out (holiday block, no shift)
+            if (month === 11 && dom >= 24) return ['no-shift-day']
+
+            // 3rd Sunday: must be a Sunday whose date is in 15–21
+            const isThirdSunday = dow === 0 && dom >= 15 && dom <= 21
+
+            // No-shift weekdays: Mon, Tue, Thu, Fri
+            const isNoShiftWeekday = [1, 2, 4, 5].includes(dow)
+
+            // 1st Sunday (except January): date in 1–7, requires extra KRG staff
+            const isFirstSunday = dow === 0 && dom <= 7 && month !== 0
+
+            const classes = []
+            if (isNoShiftWeekday || isThirdSunday) classes.push('no-shift-day')
+            if (isFirstSunday) classes.push('first-sunday-krg')
+            return classes
+          }}
         />
       </div>
 
@@ -156,10 +182,14 @@ export default function SchedulePage() {
             </div>
           ))}
         </div>
-        <div className="border-t border-slate-200 pt-3">
+        <div className="border-t border-slate-200 pt-3 space-y-1">
           <p className="text-sm text-slate-600">
             <span className="font-medium text-slate-700">Hours:</span>{' '}
             Wed 6:45-8:15pm, Sat &amp; Sun 9:30am-12:30pm. No shift 3rd Sun (District Mtg).
+          </p>
+          <p className="text-sm" style={{ color: '#f59e0b' }}>
+            <span className="font-medium">⚑ 1st Sunday (except Jan):</span>{' '}
+            Requires more than 3 for KRG.
           </p>
         </div>
       </div>
