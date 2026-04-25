@@ -9,7 +9,7 @@
   --fc-button-hover-bg-color: #4f46e5;
   --fc-button-hover-border-color: #4f46e5;
   --fc-button-active-bg-color: #4338ca;
-  --fc-today-bg-color: #eef2ff;
+  --fc-today-bg-color: #c7d2fe;
 }
 
 * {
@@ -51,6 +51,28 @@ body {
   background-color: #f1f5f9;
 }
 
+/* Grey out days with no shifts (Mon, Tue, Thu, Fri) */
+.fc .fc-daygrid-day.no-shift-day {
+  background-color: #f8fafc;
+  cursor: default;
+}
+
+.fc .fc-daygrid-day.no-shift-day:hover {
+  background-color: #f1f5f9;
+}
+
+.fc .fc-daygrid-day.no-shift-day .fc-daygrid-day-number {
+  color: #cbd5e1;
+}
+
+/* 1st Sunday (except Jan) / Jan 1st: amber background — requires more than 3 for KRG */
+.fc .fc-daygrid-day.first-sunday-krg {
+  background-color: #fef3c7;
+}
+
+.fc .fc-daygrid-day.first-sunday-krg:hover {
+  background-color: #fde68a;
+}
 .fc .fc-daygrid-day-number {
   font-weight: 500;
   color: #475569;
