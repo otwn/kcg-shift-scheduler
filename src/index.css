@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --fc-border-color: #e2e8f0;
+  --fc-border-color: #94a3b8;
   --fc-button-bg-color: #6366f1;
   --fc-button-border-color: #6366f1;
   --fc-button-hover-bg-color: #4f46e5;
@@ -42,6 +42,13 @@ body {
   text-transform: capitalize;
 }
 
+.fc .fc-scrollgrid,
+.fc .fc-scrollgrid table,
+.fc .fc-scrollgrid th,
+.fc .fc-scrollgrid td {
+  border-width: 2px;
+}
+
 .fc .fc-daygrid-day {
   cursor: pointer;
   transition: background-color 0.15s ease;
@@ -62,7 +69,7 @@ body {
 }
 
 .fc .fc-daygrid-day.no-shift-day .fc-daygrid-day-number {
-  color: #cbd5e1;
+  color: #94a3b8;
 }
 
 /* 1st Sunday (except Jan) / Jan 1st: amber background — requires more than 3 for KRG */
