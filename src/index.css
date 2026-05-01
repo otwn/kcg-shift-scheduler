@@ -47,8 +47,16 @@ body {
   transition: background-color 0.15s ease;
 }
 
+.fc .fc-daygrid-day:not(.no-shift-day) {
+  background-color: #fef3c7;
+}
+
 .fc .fc-daygrid-day:hover {
   background-color: #f1f5f9;
+}
+
+.fc .fc-daygrid-day:not(.no-shift-day):hover {
+  background-color: #fde68a;
 }
 
 /* Grey out days with no shifts (Mon, Tue, Thu, Fri) */
