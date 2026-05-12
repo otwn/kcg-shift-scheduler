@@ -6,6 +6,7 @@ import { format, parseISO } from 'date-fns'
 import { supabase } from '../supabase'
 import Modal from '../components/Modal'
 import LoadingSpinner from '../components/LoadingSpinner'
+import { getDayCellClasses } from './scheduleRules'
 
 export default function SchedulePage() {
   const [members, setMembers] = useState([])
@@ -140,32 +141,7 @@ export default function SchedulePage() {
           }}
           height="auto"
           dayMaxEvents={3}
-          dayCellClassNames={(arg) => {
-            const date = arg.date
-            const dow  = date.getDay()   // 0=Sun … 6=Sat
-            const dom  = date.getDate()  // 1-31
-            const month = date.getMonth() // 0=Jan … 11=Dec
-
-            // January 1st is always a normal shift day — and the KRG day for January
-            if (month === 0 && dom === 1) return ['first-sunday-krg']
-
-            // December 24–31 are always greyed out (holiday block, no shift)
-            if (month === 11 && dom >= 24) return ['no-shift-day']
-
-            // 3rd Sunday: must be a Sunday whose date is in 15–21
-            const isThirdSunday = dow === 0 && dom >= 15 && dom <= 21
-
-            // No-shift weekdays: Mon, Tue, Thu, Fri
-            const isNoShiftWeekday = [1, 2, 4, 5].includes(dow)
-
-            // 1st Sunday (except January): date in 1–7, requires extra KRG staff
-            const isFirstSunday = dow === 0 && dom <= 7 && month !== 0
-
-            const classes = []
-            if (isNoShiftWeekday || isThirdSunday) classes.push('no-shift-day')
-            if (isFirstSunday) classes.push('first-sunday-krg')
-            return classes
-          }}
+          dayCellClassNames={(arg) => getDayCellClasses(arg.date)}
         />
       </div>
 

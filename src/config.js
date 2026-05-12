@@ -4,4 +4,22 @@ export const CONFIG = {
 
   // App name shown in header
   appName: 'KCG Shift Scheduler',
+
+  // Shift / calendar grey-out rules. Days-of-week use 0=Sun … 6=Sat.
+  // Weeks are Sunday-start (week 1 = day-of-month 1–7, week 2 = 8–14, …).
+  shiftRules: {
+    // Weekdays that have shifts. All other weekdays are greyed out.
+    shiftWeekdays: [0, 3, 6],          // Sun, Wed, Sat
+
+    // District meeting week (Sun-Sat). Both that Sunday and the Saturday
+    // that ends the same week are greyed out.
+    districtMeetingWeekOfMonth: 3,
+
+    // Sunday in this week-of-month (non-January) is the KRG day — needs
+    // extra staff. January 1st always substitutes as January's KRG day.
+    krgSundayWeekOfMonth: 1,
+
+    // Year-end holiday block: from this day of December through Dec 31.
+    yearEndBlockStartDay: 24,
+  },
 }
