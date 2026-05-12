@@ -33,4 +33,9 @@ describe('getDayCellClasses', () => {
     expect(getDayCellClasses(new Date(2026, 4, 9))).toEqual([])  // Sat
     expect(getDayCellClasses(new Date(2026, 4, 10))).toEqual([]) // 2nd Sun
   })
+
+  it('greys out the Saturday that ends the same week as the district-meeting Sunday', () => {
+    // May 2026: 3rd Sun = May 17, same Sun-Sat week ends Sat May 23
+    expect(getDayCellClasses(new Date(2026, 4, 23))).toContain('no-shift-day')
+  })
 })
