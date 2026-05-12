@@ -11,9 +11,11 @@ export const CONFIG = {
     // Weekdays that have shifts. All other weekdays are greyed out.
     shiftWeekdays: [0, 3, 6],          // Sun, Wed, Sat
 
-    // District meeting week (Sun-Sat). Both that Sunday and the Saturday
-    // that ends the same week are greyed out.
+    // District meeting week (Sun-Sat). The Sunday is always greyed out.
+    // The same-week Saturday is greyed out only from districtSaturdayStart
+    // onward (YYYY-MM) so historical months keep their original behavior.
     districtMeetingWeekOfMonth: 3,
+    districtSaturdayStart: '2026-05',
 
     // Sunday in this week-of-month (non-January) is the KRG day — needs
     // extra staff. January 1st always substitutes as January's KRG day.

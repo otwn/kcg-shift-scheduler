@@ -18,6 +18,15 @@ export function getDayCellClasses(date, rules = CONFIG.shiftRules) {
   const districtSunEnd   = rules.districtMeetingWeekOfMonth * 7
   const isDistrictSunday = dow === 0 && dom >= districtSunStart && dom <= districtSunEnd
 
+  // Saturday that ends the same Sun-Sat week as the district-meeting Sunday
+  // is 6 days after the Sunday, so its dom shifts up by 6. Gated by a
+  // YYYY-MM cutover so historical months retain their original behavior.
+  const districtSatStart = districtSunStart + 6
+  const districtSatEnd   = districtSunEnd + 6
+  const ym = `${date.getFullYear()}-${String(month + 1).padStart(2, '0')}`
+  const districtSaturdayActive = ym >= rules.districtSaturdayStart
+  const isDistrictSaturday = districtSaturdayActive && dow === 6 && dom >= districtSatStart && dom <= districtSatEnd
+
   const isNoShiftWeekday = !rules.shiftWeekdays.includes(dow)
 
   const krgSunStart = (rules.krgSundayWeekOfMonth - 1) * 7 + 1
@@ -25,7 +34,7 @@ export function getDayCellClasses(date, rules = CONFIG.shiftRules) {
   const isKrgSunday = dow === 0 && dom >= krgSunStart && dom <= krgSunEnd && month !== 0
 
   const classes = []
-  if (isNoShiftWeekday || isDistrictSunday) classes.push('no-shift-day')
+  if (isNoShiftWeekday || isDistrictSunday || isDistrictSaturday) classes.push('no-shift-day')
   if (isKrgSunday) classes.push('first-sunday-krg')
   return classes
 }

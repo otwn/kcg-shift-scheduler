@@ -38,4 +38,9 @@ describe('getDayCellClasses', () => {
     // May 2026: 3rd Sun = May 17, same Sun-Sat week ends Sat May 23
     expect(getDayCellClasses(new Date(2026, 4, 23))).toContain('no-shift-day')
   })
+
+  it('does not grey out the district-meeting-week Saturday before the cutover', () => {
+    // May 2025: 3rd Sun = May 18, same-week Sat = May 24, pre-cutover (2026-05)
+    expect(getDayCellClasses(new Date(2025, 4, 24))).toEqual([])
+  })
 })
