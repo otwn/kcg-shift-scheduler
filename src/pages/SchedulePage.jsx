@@ -6,7 +6,7 @@ import { format, parseISO } from 'date-fns'
 import { supabase } from '../supabase'
 import Modal from '../components/Modal'
 import LoadingSpinner from '../components/LoadingSpinner'
-import { getDayCellClasses } from './scheduleRules'
+import { getDayCellClasses, getShiftTimeReminder } from './scheduleRules'
 
 export default function SchedulePage() {
   const [members, setMembers] = useState([])
@@ -16,6 +16,7 @@ export default function SchedulePage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedMember, setSelectedMember] = useState('')
   const [cancelReasons, setCancelReasons] = useState({})
+  const [reminder, setReminder] = useState(null)
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
@@ -84,10 +85,9 @@ export default function SchedulePage() {
         action: 'assigned',
       })
 
-      if (newShift) {
-        setExistingShifts(prev => [...prev, newShift])
-      }
       setSelectedMember('')
+      setIsModalOpen(false)
+      setReminder(getShiftTimeReminder(parseISO(selectedDate)))
       fetchData()
     } catch (error) {
       console.error('Error assigning shift:', error)
@@ -252,6 +252,23 @@ export default function SchedulePage() {
               </>
             )
           })()}
+        </div>
+      </Modal>
+
+      {/* Time reminder after assigning */}
+      <Modal
+        isOpen={!!reminder}
+        onClose={() => setReminder(null)}
+        title="Shift confirmed"
+      >
+        <div className="space-y-4">
+          <p className="text-slate-700">{reminder}</p>
+          <button
+            onClick={() => setReminder(null)}
+            className="w-full py-3 bg-indigo-500 text-white font-medium rounded-lg hover:bg-indigo-600 transition-all"
+          >
+            Close
+          </button>
         </div>
       </Modal>
     </div>
