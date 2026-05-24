@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getDayCellClasses } from '../scheduleRules'
+import { getDayCellClasses, getShiftTimeReminder } from '../scheduleRules'
 
 // Reference month: May 2026
 //   May 1 Fri, 3 Sun(1st), 10 Sun(2nd), 17 Sun(3rd), 23 Sat, 24 Sun(4th)
@@ -42,5 +42,27 @@ describe('getDayCellClasses', () => {
   it('does not grey out the district-meeting-week Saturday before the cutover', () => {
     // May 2025: 3rd Sun = May 18, same-week Sat = May 24, pre-cutover (2026-05)
     expect(getDayCellClasses(new Date(2025, 4, 24))).toEqual([])
+  })
+})
+
+// Reference month: May 2026 (see above)
+describe('getShiftTimeReminder', () => {
+  it('returns the Sunday time', () => {
+    // May 10 = 2nd Sunday (regular shift day)
+    expect(getShiftTimeReminder(new Date(2026, 4, 10))).toBe('Sunday 8:30am - 12:30pm')
+  })
+
+  it('returns the Wednesday time', () => {
+    expect(getShiftTimeReminder(new Date(2026, 4, 6))).toBe('Wednesday 6:45pm - 8:15pm')
+  })
+
+  it('returns the Saturday time', () => {
+    expect(getShiftTimeReminder(new Date(2026, 4, 9))).toBe('Saturday 9:30am - 12:30pm')
+  })
+
+  it('appends the KRG prep note on the first Sunday', () => {
+    // May 3 = 1st Sunday (KRG)
+    expect(getShiftTimeReminder(new Date(2026, 4, 3)))
+      .toBe('Sunday 8:30am - 12:30pm. Note that you may need to be there earlier for KRG prep')
   })
 })

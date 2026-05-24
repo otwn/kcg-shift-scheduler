@@ -38,3 +38,17 @@ export function getDayCellClasses(date, rules = CONFIG.shiftRules) {
   if (isKrgSunday) classes.push('first-sunday-krg')
   return classes
 }
+
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+
+// Reminder shown after assigning a shift, e.g. "Sunday 8:30am - 12:30pm".
+// On KRG days (first Sunday / Jan 1) the prep note is appended.
+export function getShiftTimeReminder(date, rules = CONFIG.shiftRules) {
+  const dow = date.getDay()
+  const time = rules.shiftTimes[dow]
+  let label = time ? `${DAY_NAMES[dow]} ${time}` : DAY_NAMES[dow]
+  if (getDayCellClasses(date, rules).includes('first-sunday-krg')) {
+    label += `. ${rules.krgNote}`
+  }
+  return label
+}
