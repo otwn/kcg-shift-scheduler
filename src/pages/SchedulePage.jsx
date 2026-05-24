@@ -150,7 +150,7 @@ export default function SchedulePage() {
         <div className="space-y-1 mb-3">
           <p className="text-sm text-slate-600">
             <span className="font-medium text-slate-700">Hours:</span>{' '}
-            Wed 6:45-8:15pm, Sat 9:30am-12:30pm, Sun 8:30am-12:30pm. No shift 3rd Sun (District Mtg).
+            <span className="font-bold">Wed 6:45-8:15pm, Sat 9:30am-12:30pm, Sun 8:30am-12:30pm</span>. No shift 3rd Sun (District Mtg).
           </p>
           <p className="text-sm" style={{ color: '#f59e0b' }}>
             <span className="font-medium">⚑ 1st Sunday (except Jan):</span>{' '}
