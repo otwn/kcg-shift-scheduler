@@ -23,5 +23,16 @@ export const CONFIG = {
 
     // Year-end holiday block: from this day of December through Dec 31.
     yearEndBlockStartDay: 24,
+
+    // Shift start/end times shown in the post-assign reminder, keyed by
+    // weekday (0=Sun … 6=Sat). Days without an entry have no fixed time.
+    shiftTimes: {
+      0: '8:30am - 12:30pm',  // Sun
+      3: '6:45pm - 8:15pm',   // Wed
+      6: '9:30am - 12:30pm',  // Sat
+    },
+
+    // Note appended to the reminder on KRG days (need to arrive earlier).
+    krgNote: 'Note that you may need to be there earlier for KRG prep',
   },
 }
