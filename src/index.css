@@ -48,7 +48,7 @@ body {
 }
 
 .fc .fc-daygrid-day:not(.no-shift-day) {
-  background-color: #fffbeb;
+  background-color: #fef3c7;
 }
 
 .fc .fc-daygrid-day:hover {
@@ -56,7 +56,7 @@ body {
 }
 
 .fc .fc-daygrid-day:not(.no-shift-day):hover {
-  background-color: #fef3c7;
+  background-color: #fde68a;
 }
 
 /* Grey out days with no shifts (Mon, Tue, Thu, Fri) */
@@ -75,11 +75,11 @@ body {
 
 /* 1st Sunday (except Jan) / Jan 1st: amber background — requires more than 3 for KRG */
 .fc .fc-daygrid-day.first-sunday-krg {
-  background-color: #fef3c7;
+  background-color: #fde68a;
 }
 
 .fc .fc-daygrid-day.first-sunday-krg:hover {
-  background-color: #fde68a;
+  background-color: #fcd34d;
 }
 .fc .fc-daygrid-day-number {
   font-weight: 500;

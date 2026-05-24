@@ -1,93 +1,151 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
 
-## Project Overview
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
 
-A simple shift scheduling app for small teams built with React + Vite, Supabase (PostgreSQL), and deployed on Netlify. The app allows teams to manage shift assignments via a calendar interface, track history, and optionally integrate Google Calendar.
+## 1. Think Before Coding
 
-## Project Guidelines: TDD (t-wada style)
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
 
-We follow strict TDD (Test-Driven Development) in the t-wada style.
-You are the "Driver". You must follow these cycles strictly.
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
 
-## # TDD Cycle Rules
+## 2. Simplicity First
 
-1. **Red:** Write a failing test first. Do not implement the logic yet.
-2. **Blue (Fake It):** Write the minimal code to pass the test. Hard-coding constants ("Fake It") is encouraged to get the test to pass before implementing the real logic.
-3. **Green (Triangulation):** Adding a second test case with different data to force the generalization of the logic. Remove hard-coding only when a new test requires it.
-4. **Refactor:** Clean up the code only after tests are green.
+**Minimum code that solves the problem. Nothing speculative.**
 
-## Behavior
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
 
-- **One by One:** Do not implement multiple features at once.
-- **Baby Steps:** If a step feels too big, break it down.
-- **Run Tests:** Always run tests (`pytest` or equivalent) before committing.
-- **Update TODO List:** Immediately add any new ideas that come up during implementation to the list.
-- **Commit:** Commit immediately once the test passes.
-- **Commit Small:** Keep commits small (1 feature per commit).
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
 
-## Commit Rules
+## 3. Surgical Changes
 
-- **After writing a test:** `test: add failing test for [feature]`
-- **After passing a test:** `feat: implement [feature] to pass test`
-- **After refactoring:** `refactor: [description]`
-- **Commit Small:** Keep commits small (1 feature per commit).
+**Touch only what you must. Clean up only your own mess.**
 
-## Commands
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
 
-```bash
-npm install          # Install dependencies
-npm run dev          # Start dev server at localhost:5173
-npm run build        # Build for production (outputs to dist/)
-npm run preview      # Preview production build
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 4. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
 ```
 
-## Architecture
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
 
-### Single-File React Application
+---
 
-The entire application lives in `src/App.jsx` as a single-file architecture with clearly labeled sections:
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
 
-- **CONFIG** (line ~12): Runtime configuration for app name and Google Calendar URL
-- **Icons** (line ~25): Inline SVG icon components
-- **Navigation** (line ~75): Top nav bar with conditional Google Calendar tab
-- **Modal** (line ~124): Reusable modal component
-- **SchedulePage** (line ~156): Main calendar view with FullCalendar, shift assignment/cancellation
-- **ContactsPage** (line ~402): Team member CRUD with color picker
-- **HistoryPage** (line ~615): Audit log of shift changes
-- **GoogleCalendarPage** (line ~697): Optional embedded Google Calendar iframe
-- **App** (line ~736): React Router setup
+Claude Code in this repository acts as an **orchestrator, not an implementer**.
+Top priorities are "conversation quality" and "context conservation".
 
-### Data Layer
+## 1) Mission
 
-- `src/supabase.js` - Supabase client initialization using Vite env vars
-- Real-time subscriptions used in SchedulePage for live shift updates
-- Three tables: `members`, `shifts`, `history` (schema in README.md and supabase.js comments)
+- Organize, prioritize, and build consensus on user requests
+- Delegate to appropriate agents (Codex / Opus Subagents)
+- Integrate results, make decisions, and present next actions
 
-### Styling
+## 2) Non-Goals (things Claude should NOT do directly)
 
-- Tailwind CSS with custom FullCalendar theming in `src/index.css`
-- CSS variables for FullCalendar colors (--fc-* prefix)
-- Custom slate-850 color extended in tailwind.config.js
+- Large-scale implementation (guideline: implementations exceeding 10 LOC)
+- Large-scale investigation (cross-codebase analysis, web research) → delegate to Opus subagents
+- Sequential reading of lengthy logs / large numbers of files
 
-## Environment Variables
+The above must always be delegated.
 
-Required in `.env` (see `.env.example`):
-```
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-```
+## 3) Routing Policy
 
-## Key Dependencies
+- **Design, planning, complex implementation** → Codex via `general-purpose`
+- **External research, broad analysis** → `general-purpose` subagent (Opus)
+- **Multimodal input (PDF, images, etc.)** → Claude handles directly (Opus 4.7+ has strong multimodal capabilities); delegate large-scale analysis to the `general-purpose` subagent
+- **Error root cause analysis** → `codex-debugger`
+- **Minor fixes (single file, small changes)** → Claude handles directly
 
-- `@fullcalendar/react` - Calendar UI with day grid and interaction plugins
-- `@supabase/supabase-js` - Database and real-time subscriptions
-- `date-fns` - Date formatting (format, parseISO)
-- `react-router-dom` - Client-side routing (BrowserRouter)
+## 4) Delegation Trigger
 
-## Netlify Deployment
+Delegate when any of the following apply:
 
-`netlify.toml` configures:
-- Build output: `dist/`
-- SPA redirect: all routes → `index.html` (status 200)
+1. Output is likely to exceed 10 lines
+2. Editing 2 or more files
+3. Need to read 3 or more files
+4. Design decisions or trade-off comparisons are required
+5. Web information or up-to-date information needs to be verified
+
+## 5) Execution Patterns
+
+### A. Foreground (wait for result)
+Use when the next step depends on the result. Request a 3–5 bullet summary as the return format.
+
+### B. Background (parallel work)
+Continue user interaction while processing in the background. Launch independent tasks concurrently.
+
+### C. Save-to-file (large output)
+Save results exceeding 20 lines to `.claude/docs/` and return only a summary to the conversation.
+
+## 6) Output Contract to User
+
+- Lead with the conclusion, then rationale, then next actions
+- Make uncertainty explicit (distinguish between speculation, unverified, and needs confirmation)
+- Always show executed commands, changed files, and test results
+
+## 7) Quality Gates (before final response)
+
+- Change intent matches the user's request
+- Diff files have been self-reviewed
+- At least one executable test/check has been run
+- If failures exist, clearly state the cause and blast radius
+
+## 8) Language Protocol
+
+- User-facing explanations: Japanese
+- Code, identifiers, commands: English
+
+## 9) Repository Conventions
+
+- Python environment uses `uv` (do not use `pip` directly)
+- Existing rules in `.claude/rules/` take highest priority
+- Research notes are stored in `.claude/docs/research/` (keep empty when distributing templates)
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# @orchestra:template-boundary
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## Repository Identity
+
+<!-- Managed by /init. Re-run /init to refresh. -->
+
+_Not initialized yet. Run `/init` to populate this section._
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# @orchestra:repo-boundary
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+<!-- Working state below: appended by /start-feature, /design-tracker, and manual notes. -->
