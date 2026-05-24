@@ -147,7 +147,17 @@ export default function SchedulePage() {
 
       {/* Legend & Hours */}
       <div className="bg-white rounded-xl p-4 shadow-sm border border-slate-200">
-        <div className="flex flex-wrap gap-4 mb-3">
+        <div className="space-y-1 mb-3">
+          <p className="text-sm text-slate-600">
+            <span className="font-medium text-slate-700">Hours:</span>{' '}
+            Wed 6:45-8:15pm, Sat 9:30am-12:30pm, Sun 8:30am-12:30pm. No shift 3rd Sun (District Mtg).
+          </p>
+          <p className="text-sm" style={{ color: '#f59e0b' }}>
+            <span className="font-medium">⚑ 1st Sunday (except Jan):</span>{' '}
+            Requires more than 3 for KRG.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-4 border-t border-slate-200 pt-3">
           {members.map(member => (
             <div key={member.id} className="flex items-center gap-2">
               <div
@@ -157,16 +167,6 @@ export default function SchedulePage() {
               <span className="text-sm text-slate-600">{member.name}</span>
             </div>
           ))}
-        </div>
-        <div className="border-t border-slate-200 pt-3 space-y-1">
-          <p className="text-sm text-slate-600">
-            <span className="font-medium text-slate-700">Hours:</span>{' '}
-            Wed 6:45-8:15pm, Sat &amp; Sun 9:30am-12:30pm. No shift 3rd Sun (District Mtg).
-          </p>
-          <p className="text-sm" style={{ color: '#f59e0b' }}>
-            <span className="font-medium">⚑ 1st Sunday (except Jan):</span>{' '}
-            Requires more than 3 for KRG.
-          </p>
         </div>
       </div>
 
