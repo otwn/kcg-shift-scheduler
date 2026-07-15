@@ -6,6 +6,7 @@ import SchedulePage from './pages/SchedulePage'
 import ContactsPage from './pages/ContactsPage'
 import HistoryPage from './pages/HistoryPage'
 import GoogleCalendarPage from './pages/GoogleCalendarPage'
+import { RegionProvider } from './contexts/RegionContext'
 
 export default function App() {
   if (!isSupabaseConfigured) {
@@ -13,18 +14,20 @@ export default function App() {
   }
 
   return (
-    <BrowserRouter>
-      <div className="min-h-screen">
-        <Navigation />
-        <main className="max-w-6xl mx-auto px-4 py-8">
-          <Routes>
-            <Route path="/" element={<SchedulePage />} />
-            <Route path="/contacts" element={<ContactsPage />} />
-            <Route path="/history" element={<HistoryPage />} />
-            <Route path="/google-calendar" element={<GoogleCalendarPage />} />
-          </Routes>
-        </main>
-      </div>
-    </BrowserRouter>
+    <RegionProvider>
+      <BrowserRouter>
+        <div className="min-h-screen">
+          <Navigation />
+          <main className="max-w-6xl mx-auto px-4 py-8">
+            <Routes>
+              <Route path="/" element={<SchedulePage />} />
+              <Route path="/contacts" element={<ContactsPage />} />
+              <Route path="/history" element={<HistoryPage />} />
+              <Route path="/google-calendar" element={<GoogleCalendarPage />} />
+            </Routes>
+          </main>
+        </div>
+      </BrowserRouter>
+    </RegionProvider>
   )
 }

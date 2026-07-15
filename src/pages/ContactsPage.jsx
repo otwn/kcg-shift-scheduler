@@ -1,13 +1,18 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../supabase'
+import { useRegion } from '../contexts/RegionContext'
 import { Icons } from '../components/Icons'
 import Modal from '../components/Modal'
 import Toast from '../components/Toast'
 import LoadingSpinner from '../components/LoadingSpinner'
+import RegionSelectionPrompt from '../components/RegionSelectionPrompt'
 
 const COLORS = ['#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#ef4444', '#22c55e', '#3b82f6']
 
 export default function ContactsPage() {
+  const { regionName, isLoading } = useRegion()
+  const activeRegionRef = useRef(regionName)
+  activeRegionRef.current = regionName
   const [members, setMembers] = useState([])
   const [removedMembers, setRemovedMembers] = useState([])
   const [loading, setLoading] = useState(true)
@@ -24,29 +29,56 @@ export default function ContactsPage() {
   const [toast, setToast] = useState(null)
 
   const fetchMembers = useCallback(async () => {
+    if (!regionName) return
+
     const { data } = await supabase
       .from('active_members')
       .select('*')
+      .eq('region_name', regionName)
       .order('name')
 
-    if (data) setMembers(data)
-    setLoading(false)
-  }, [])
+    if (data && activeRegionRef.current === regionName) setMembers(data)
+  }, [regionName])
 
   const fetchRemovedMembers = useCallback(async () => {
+    if (!regionName) return
+
     const { data } = await supabase
       .from('members')
       .select('*')
       .not('deleted_at', 'is', null)
+      .eq('region_name', regionName)
       .order('name')
 
-    if (data) setRemovedMembers(data)
-  }, [])
+    if (data && activeRegionRef.current === regionName) setRemovedMembers(data)
+  }, [regionName])
 
   useEffect(() => {
-    fetchMembers()
-    fetchRemovedMembers()
-  }, [fetchMembers, fetchRemovedMembers])
+    setMembers([])
+    setRemovedMembers([])
+    setViewMode('active')
+    setIsModalOpen(false)
+    setEditingMember(null)
+    setConfirmMember(null)
+    setUpcomingShiftCount(0)
+    setToast(null)
+
+    if (!regionName) {
+      setLoading(false)
+      return undefined
+    }
+
+    let isCurrent = true
+    setLoading(true)
+
+    Promise.all([fetchMembers(), fetchRemovedMembers()]).finally(() => {
+      if (isCurrent) setLoading(false)
+    })
+
+    return () => {
+      isCurrent = false
+    }
+  }, [fetchMembers, fetchRemovedMembers, regionName])
 
   const handleOpenModal = (member = null) => {
     if (member) {
@@ -60,13 +92,17 @@ export default function ContactsPage() {
   }
 
   const handleSave = async () => {
-    if (!formData.name.trim()) return
+    if (!regionName || !formData.name.trim()) return
 
     try {
       if (editingMember) {
-        await supabase.from('members').update(formData).eq('id', editingMember.id)
+        await supabase
+          .from('members')
+          .update(formData)
+          .eq('id', editingMember.id)
+          .eq('region_name', regionName)
       } else {
-        await supabase.from('members').insert(formData)
+        await supabase.from('members').insert({ ...formData, region_name: regionName })
       }
       setIsModalOpen(false)
       fetchMembers()
@@ -76,12 +112,15 @@ export default function ContactsPage() {
   }
 
   const handleDeleteClick = async (member) => {
+    if (!regionName) return
+
     // Fetch upcoming shift count for this member
     const today = new Date().toISOString().split('T')[0]
     const { data: upcomingShifts } = await supabase
       .from('shifts')
       .select('id')
       .eq('member_id', member.id)
+      .eq('region_name', regionName)
       .gte('shift_date', today)
 
     setUpcomingShiftCount(upcomingShifts?.length || 0)
@@ -89,18 +128,20 @@ export default function ContactsPage() {
   }
 
   const handleConfirmDelete = async () => {
-    if (!confirmMember) return
+    if (!regionName || !confirmMember) return
 
     try {
       await supabase
         .from('members')
         .update({ deleted_at: new Date().toISOString() })
         .eq('id', confirmMember.id)
+        .eq('region_name', regionName)
 
       await supabase.from('history').insert({
         member_id: confirmMember.id,
         member_name: confirmMember.name,
         action: 'member_removed',
+        region_name: regionName,
       })
 
       const removedMember = confirmMember
@@ -118,16 +159,20 @@ export default function ContactsPage() {
   }
 
   const handleRestore = async (member) => {
+    if (!regionName) return
+
     try {
       await supabase
         .from('members')
         .update({ deleted_at: null })
         .eq('id', member.id)
+        .eq('region_name', regionName)
 
       await supabase.from('history').insert({
         member_id: member.id,
         member_name: member.name,
         action: 'member_restored',
+        region_name: regionName,
       })
 
       setToast(null)
@@ -138,9 +183,11 @@ export default function ContactsPage() {
     }
   }
 
-  if (loading) {
+  if (isLoading || loading) {
     return <LoadingSpinner />
   }
+
+  if (!regionName) return <RegionSelectionPrompt />
 
   const displayedMembers = viewMode === 'active' ? members : removedMembers
 

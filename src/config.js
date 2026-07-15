@@ -1,6 +1,8 @@
 export const CONFIG = {
-  // Your Google Calendar embed URL (public calendar)
-  googleCalendarUrl: '',
+  // Public Google Calendar embed URLs, keyed by region name.
+  googleCalendarUrls: {
+    central_texas: '',
+  },
 
   // App name shown in header
   appName: 'KCG Shift Scheduler',
@@ -35,4 +37,8 @@ export const CONFIG = {
     // Note appended to the reminder on KRG days (need to arrive earlier).
     krgNote: 'Note that you may need to be there earlier for KRG prep',
   },
+}
+
+export function getGoogleCalendarUrl(regionName) {
+  return regionName ? CONFIG.googleCalendarUrls[regionName] || '' : ''
 }

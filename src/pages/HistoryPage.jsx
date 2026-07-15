@@ -1,31 +1,53 @@
 import { useState, useEffect } from 'react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '../supabase'
+import { useRegion } from '../contexts/RegionContext'
 import { Icons } from '../components/Icons'
 import LoadingSpinner from '../components/LoadingSpinner'
+import RegionSelectionPrompt from '../components/RegionSelectionPrompt'
 
 export default function HistoryPage() {
+  const { regionName, isLoading } = useRegion()
   const [history, setHistory] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    setHistory([])
+
+    if (!regionName) {
+      setLoading(false)
+      return undefined
+    }
+
+    let isCurrent = true
+    setLoading(true)
+
     const fetchHistory = async () => {
       const { data } = await supabase
         .from('history')
         .select('*')
+        .eq('region_name', regionName)
         .order('created_at', { ascending: false })
         .limit(100)
+
+      if (!isCurrent) return
 
       if (data) setHistory(data)
       setLoading(false)
     }
 
     fetchHistory()
-  }, [])
 
-  if (loading) {
+    return () => {
+      isCurrent = false
+    }
+  }, [regionName])
+
+  if (isLoading || loading) {
     return <LoadingSpinner />
   }
+
+  if (!regionName) return <RegionSelectionPrompt />
 
   return (
     <div className="space-y-6">

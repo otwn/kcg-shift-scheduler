@@ -1,27 +1,35 @@
 # Dependencies
-node_modules
+node_modules/
 
 # Build output
-dist
+dist/
+coverage/
+.vite/
 
 # Environment variables
 .env
-.env.local
-.env.*.local
+.env.*
+!.env.example
+
+# Local tooling output
+.netlify/
+.claude/settings.local.json
+.codex/logs/
+.codex/docs/research/
 
 # IDE
-.vscode
-.idea
+.vscode/
+.idea/
 *.swp
 *.swo
-
-# OS
-.DS_Store
-Thumbs.db
 
 # Logs
 *.log
 npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Netlify
-.netlify
+# OS
+.DS_Store
+Thumbs.db

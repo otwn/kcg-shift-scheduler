@@ -1,14 +1,19 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/daygrid'
 import interactionPlugin from '@fullcalendar/interaction'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '../supabase'
+import { useRegion } from '../contexts/RegionContext'
 import Modal from '../components/Modal'
 import LoadingSpinner from '../components/LoadingSpinner'
+import RegionSelectionPrompt from '../components/RegionSelectionPrompt'
 import { getDayCellClasses, getShiftTimeReminder } from './scheduleRules'
 
 export default function SchedulePage() {
+  const { regionName, isLoading } = useRegion()
+  const activeRegionRef = useRef(regionName)
+  activeRegionRef.current = regionName
   const [members, setMembers] = useState([])
   const [shifts, setShifts] = useState([])
   const [selectedDate, setSelectedDate] = useState(null)
@@ -20,33 +25,59 @@ export default function SchedulePage() {
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
+    if (!regionName) return
+
     try {
       const [membersRes, shiftsRes] = await Promise.all([
-        supabase.from('active_members').select('*').order('name'),
-        supabase.from('shifts').select('*, members(*)'),
+        supabase.from('active_members').select('*').eq('region_name', regionName).order('name'),
+        supabase
+          .from('shifts')
+          .select('*, members!shifts_member_id_region_name_fkey(*)')
+          .eq('region_name', regionName),
       ])
+
+      if (activeRegionRef.current !== regionName) return
 
       if (membersRes.data) setMembers(membersRes.data)
       if (shiftsRes.data) setShifts(shiftsRes.data)
     } catch (error) {
       console.error('Error fetching data:', error)
     } finally {
-      setLoading(false)
+      if (activeRegionRef.current === regionName) setLoading(false)
     }
-  }, [])
+  }, [regionName])
 
   useEffect(() => {
+    setMembers([])
+    setShifts([])
+    setSelectedDate(null)
+    setExistingShifts([])
+    setIsModalOpen(false)
+    setSelectedMember('')
+    setCancelReasons({})
+    setReminder(null)
+
+    if (!regionName) {
+      setLoading(false)
+      return undefined
+    }
+
+    setLoading(true)
     fetchData()
 
     const shiftsSubscription = supabase
-      .channel('shifts-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'shifts' }, fetchData)
+      .channel(`shifts-changes-${regionName}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'shifts', filter: `region_name=eq.${regionName}` },
+        fetchData
+      )
       .subscribe()
 
     return () => {
       shiftsSubscription.unsubscribe()
     }
-  }, [fetchData])
+  }, [fetchData, regionName])
 
   const events = shifts.map(shift => ({
     id: shift.id,
@@ -69,13 +100,16 @@ export default function SchedulePage() {
   }
 
   const handleAssign = async () => {
-    if (!selectedMember || !selectedDate) return
+    if (!regionName || !selectedMember || !selectedDate) return
 
     try {
       const { data: newShift } = await supabase.from('shifts').insert({
         member_id: selectedMember,
         shift_date: selectedDate,
-      }).select('*, members(*)').single()
+        region_name: regionName,
+      })
+        .select('*, members!shifts_member_id_region_name_fkey(*)')
+        .single()
 
       const member = members.find(m => m.id === selectedMember)
       await supabase.from('history').insert({
@@ -83,6 +117,7 @@ export default function SchedulePage() {
         member_name: member?.name || 'Unknown',
         shift_date: selectedDate,
         action: 'assigned',
+        region_name: regionName,
       })
 
       setSelectedMember('')
@@ -95,10 +130,10 @@ export default function SchedulePage() {
   }
 
   const handleCancel = async (shift) => {
-    if (!shift) return
+    if (!regionName || !shift) return
 
     try {
-      await supabase.from('shifts').delete().eq('id', shift.id)
+      await supabase.from('shifts').delete().eq('id', shift.id).eq('region_name', regionName)
 
       await supabase.from('history').insert({
         member_id: shift.member_id,
@@ -106,6 +141,7 @@ export default function SchedulePage() {
         shift_date: selectedDate,
         action: 'cancelled',
         reason: cancelReasons[shift.id] || null,
+        region_name: regionName,
       })
 
       setExistingShifts(prev => prev.filter(s => s.id !== shift.id))
@@ -120,9 +156,11 @@ export default function SchedulePage() {
     }
   }
 
-  if (loading) {
+  if (isLoading || loading) {
     return <LoadingSpinner />
   }
+
+  if (!regionName) return <RegionSelectionPrompt />
 
   return (
     <div className="space-y-6">
