@@ -1,15 +1,17 @@
 import { NavLink } from 'react-router-dom'
 import { Icons } from './Icons'
-import { CONFIG } from '../config'
+import { CONFIG, getGoogleCalendarUrl } from '../config'
+import { useRegion } from '../contexts/RegionContext'
 
 export default function Navigation() {
+  const { regionName, regions, isLoading, setRegionName } = useRegion()
   const navItems = [
     { to: '/', icon: Icons.Calendar, label: 'Schedule' },
     { to: '/contacts', icon: Icons.Users, label: 'Contacts' },
     { to: '/history', icon: Icons.History, label: 'History' },
   ]
 
-  if (CONFIG.googleCalendarUrl) {
+  if (getGoogleCalendarUrl(regionName)) {
     navItems.push({ to: '/google-calendar', icon: Icons.Google, label: 'Events' })
   }
 
@@ -25,6 +27,24 @@ export default function Navigation() {
           </div>
 
           <div className="flex items-center gap-1">
+            <label className="sr-only" htmlFor="region-select">
+              Region
+            </label>
+            <select
+              id="region-select"
+              aria-label="Region"
+              value={regionName || ''}
+              onChange={(event) => setRegionName(event.target.value || null)}
+              disabled={isLoading}
+              className="max-w-36 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 disabled:cursor-wait disabled:text-slate-400"
+            >
+              <option value="">{isLoading ? 'Loading regions...' : 'Select region'}</option>
+              {regions.map((region) => (
+                <option key={region} value={region}>
+                  {region}
+                </option>
+              ))}
+            </select>
             {navItems.map(({ to, icon: Icon, label }) => (
               <NavLink
                 key={to}

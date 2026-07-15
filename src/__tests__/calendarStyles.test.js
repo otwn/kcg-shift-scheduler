@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8')
+const css = readFileSync(resolve(__dirname, '../index.css'), 'utf8').replace(/\r\n/g, '\n')
 
 describe('calendar grid styling', () => {
   it('uses a desktop-visible tint for available dates and stronger emphasis for the first Sunday', () => {

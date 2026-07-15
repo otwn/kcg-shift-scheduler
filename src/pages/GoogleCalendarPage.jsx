@@ -1,14 +1,27 @@
-import { CONFIG } from '../config'
+import { getGoogleCalendarUrl } from '../config'
 import { Icons } from '../components/Icons'
+import { useRegion } from '../contexts/RegionContext'
 
 export default function GoogleCalendarPage() {
-  if (!CONFIG.googleCalendarUrl) {
+  const { regionName } = useRegion()
+  const googleCalendarUrl = getGoogleCalendarUrl(regionName)
+
+  if (!regionName) {
+    return (
+      <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
+        <Icons.Google />
+        <p className="text-slate-500 mt-2">Select a region to view its Google Calendar.</p>
+      </div>
+    )
+  }
+
+  if (!googleCalendarUrl) {
     return (
       <div className="text-center py-12 bg-white rounded-xl border border-slate-200">
         <Icons.Google />
         <p className="text-slate-500 mt-2">Google Calendar not configured.</p>
         <p className="text-sm text-slate-400 mt-1">
-          Set your Google Calendar URL in src/config.js
+          Set a Google Calendar URL for {regionName} in src/config.js
         </p>
       </div>
     )
@@ -20,7 +33,7 @@ export default function GoogleCalendarPage() {
 
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden google-calendar-embed">
         <iframe
-          src={CONFIG.googleCalendarUrl}
+          src={googleCalendarUrl}
           style={{ border: 0 }}
           width="100%"
           height="600"

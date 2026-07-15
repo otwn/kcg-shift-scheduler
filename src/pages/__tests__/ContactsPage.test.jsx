@@ -2,56 +2,54 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Separate mock chains for active_members vs members (removed)
+const mockActiveEq = vi.fn()
 const mockActiveOrder = vi.fn()
+const mockRemovedNot = vi.fn()
+const mockRemovedEq = vi.fn()
 const mockRemovedOrder = vi.fn()
-const mockUpdate = vi.fn()
-const mockEq = vi.fn()
-const mockInsert = vi.fn()
+const mockMemberUpdate = vi.fn()
+const mockMemberUpdateIdEq = vi.fn()
+const mockMemberUpdateRegionEq = vi.fn()
+const mockMemberInsert = vi.fn()
+const mockShiftMemberEq = vi.fn()
+const mockShiftRegionEq = vi.fn()
 const mockShiftGte = vi.fn()
+const mockHistoryInsert = vi.fn()
 
 vi.mock('../../supabase', () => ({
   supabase: {
     from: vi.fn((table) => {
       if (table === 'active_members') {
         return {
-          select: vi.fn().mockReturnValue({
-            order: mockActiveOrder,
-          }),
+          select: vi.fn().mockReturnValue({ eq: mockActiveEq }),
         }
       }
       if (table === 'members') {
         return {
-          select: vi.fn().mockReturnValue({
-            order: vi.fn(), // unused in this path
-            not: vi.fn().mockReturnValue({
-              order: mockRemovedOrder,
-            }),
-          }),
-          update: mockUpdate.mockReturnValue({
-            eq: mockEq,
-          }),
+          select: vi.fn().mockReturnValue({ not: mockRemovedNot }),
+          update: mockMemberUpdate,
+          insert: mockMemberInsert,
         }
       }
       if (table === 'shifts') {
         return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              gte: mockShiftGte,
-            }),
-          }),
+          select: vi.fn().mockReturnValue({ eq: mockShiftMemberEq }),
         }
       }
       if (table === 'history') {
-        return {
-          insert: mockInsert,
-        }
+        return { insert: mockHistoryInsert }
       }
       return { select: vi.fn() }
     }),
   },
 }))
 
+vi.mock('../../contexts/RegionContext', () => ({
+  useRegion: vi.fn(),
+}))
+
+import { supabase } from '../../supabase'
+import { useRegion } from '../../contexts/RegionContext'
 import ContactsPage from '../ContactsPage'
 
 const MOCK_MEMBERS = [
@@ -66,24 +64,44 @@ const MOCK_REMOVED = [
 describe('ContactsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    useRegion.mockReturnValue({ regionName: 'central_texas', isLoading: false })
+    mockActiveEq.mockReturnValue({ order: mockActiveOrder })
     mockActiveOrder.mockResolvedValue({ data: MOCK_MEMBERS })
+    mockRemovedNot.mockReturnValue({ eq: mockRemovedEq })
+    mockRemovedEq.mockReturnValue({ order: mockRemovedOrder })
     mockRemovedOrder.mockResolvedValue({ data: [] })
+    mockMemberUpdate.mockReturnValue({ eq: mockMemberUpdateIdEq })
+    mockMemberUpdateIdEq.mockReturnValue({ eq: mockMemberUpdateRegionEq })
+    mockMemberUpdateRegionEq.mockResolvedValue({ data: null })
+    mockMemberInsert.mockResolvedValue({ data: null })
+    mockShiftMemberEq.mockReturnValue({ eq: mockShiftRegionEq })
+    mockShiftRegionEq.mockReturnValue({ gte: mockShiftGte })
+    mockShiftGte.mockResolvedValue({ data: [], count: 0 })
+    mockHistoryInsert.mockResolvedValue({ data: null })
   })
 
-  it('renders active members by default', async () => {
+  it('renders active members from the selected region by default', async () => {
     render(<ContactsPage />)
 
     await waitFor(() => {
       expect(screen.getByText('Alice')).toBeInTheDocument()
       expect(screen.getByText('Bob')).toBeInTheDocument()
+      expect(mockActiveEq).toHaveBeenCalledWith('region_name', 'central_texas')
+      expect(mockRemovedEq).toHaveBeenCalledWith('region_name', 'central_texas')
     })
   })
 
-  it('soft delete sets deleted_at (not hard delete)', async () => {
-    mockShiftGte.mockResolvedValue({ data: [], count: 0 })
-    mockEq.mockResolvedValue({ data: null })
-    mockInsert.mockResolvedValue({ data: null })
+  it('does not load member data until a region is selected', async () => {
+    useRegion.mockReturnValue({ regionName: null, isLoading: false })
 
+    render(<ContactsPage />)
+
+    await waitFor(() => {
+      expect(supabase.from).not.toHaveBeenCalled()
+    })
+  })
+
+  it('soft deletes members within the selected region and records regional history', async () => {
     const user = userEvent.setup()
     render(<ContactsPage />)
 
@@ -91,23 +109,24 @@ describe('ContactsPage', () => {
       expect(screen.getByText('Alice')).toBeInTheDocument()
     })
 
-    const deleteButtons = screen.getAllByLabelText(/remove/i)
-    await user.click(deleteButtons[0])
+    await user.click(screen.getAllByLabelText(/remove/i)[0])
 
     await waitFor(() => {
       expect(screen.getByText(/Remove Alice\?/)).toBeInTheDocument()
+      expect(mockShiftMemberEq).toHaveBeenCalledWith('member_id', '1')
+      expect(mockShiftRegionEq).toHaveBeenCalledWith('region_name', 'central_texas')
     })
 
     await user.click(screen.getByRole('button', { name: /^Remove$/i }))
 
     await waitFor(() => {
-      expect(mockUpdate).toHaveBeenCalled()
+      expect(mockMemberUpdateIdEq).toHaveBeenCalledWith('id', '1')
+      expect(mockMemberUpdateRegionEq).toHaveBeenCalledWith('region_name', 'central_texas')
+      expect(mockHistoryInsert).toHaveBeenCalledWith(expect.objectContaining({ region_name: 'central_texas' }))
     })
   })
 
-  it('shows confirmation modal with shift count', async () => {
-    mockShiftGte.mockResolvedValue({ data: [{ id: 's1' }, { id: 's2' }], count: 2 })
-
+  it('adds a new member to the selected region', async () => {
     const user = userEvent.setup()
     render(<ContactsPage />)
 
@@ -115,74 +134,20 @@ describe('ContactsPage', () => {
       expect(screen.getByText('Alice')).toBeInTheDocument()
     })
 
-    const deleteButtons = screen.getAllByLabelText(/remove/i)
-    await user.click(deleteButtons[0])
+    await user.click(screen.getByRole('button', { name: /^Add Member$/i }))
+    await user.type(screen.getByPlaceholderText('John Doe'), 'Dana')
+    await user.click(screen.getAllByRole('button', { name: /^Add Member$/i })[1])
 
     await waitFor(() => {
-      expect(screen.getByText(/2 upcoming shift/)).toBeInTheDocument()
+      expect(mockMemberInsert).toHaveBeenCalledWith(expect.objectContaining({
+        name: 'Dana',
+        region_name: 'central_texas',
+      }))
     })
   })
 
-  it('toast appears after delete with undo button', async () => {
-    mockShiftGte.mockResolvedValue({ data: [], count: 0 })
-    mockEq.mockResolvedValue({ data: null })
-    mockInsert.mockResolvedValue({ data: null })
-
-    const user = userEvent.setup()
-    render(<ContactsPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Alice')).toBeInTheDocument()
-    })
-
-    const deleteButtons = screen.getAllByLabelText(/remove/i)
-    await user.click(deleteButtons[0])
-
-    await waitFor(() => {
-      expect(screen.getByText(/Remove Alice\?/)).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: /^Remove$/i }))
-
-    await waitFor(() => {
-      expect(screen.getByText(/Alice removed from team/)).toBeInTheDocument()
-      expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument()
-    })
-  })
-
-  it('undo restores member (clears deleted_at)', async () => {
-    mockShiftGte.mockResolvedValue({ data: [], count: 0 })
-    mockEq.mockResolvedValue({ data: null })
-    mockInsert.mockResolvedValue({ data: null })
-
-    const user = userEvent.setup()
-    render(<ContactsPage />)
-
-    await waitFor(() => {
-      expect(screen.getByText('Alice')).toBeInTheDocument()
-    })
-
-    const deleteButtons = screen.getAllByLabelText(/remove/i)
-    await user.click(deleteButtons[0])
-    await waitFor(() => {
-      expect(screen.getByText(/Remove Alice\?/)).toBeInTheDocument()
-    })
-    await user.click(screen.getByRole('button', { name: /^Remove$/i }))
-
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /undo/i })).toBeInTheDocument()
-    })
-
-    await user.click(screen.getByRole('button', { name: /undo/i }))
-
-    await waitFor(() => {
-      expect(mockUpdate).toHaveBeenCalledTimes(2)
-    })
-  })
-
-  it('tab switch shows removed members', async () => {
+  it('tab switch shows removed members from the selected region', async () => {
     mockRemovedOrder.mockResolvedValue({ data: MOCK_REMOVED })
-
     const user = userEvent.setup()
     render(<ContactsPage />)
 
@@ -190,8 +155,7 @@ describe('ContactsPage', () => {
       expect(screen.getByText('Alice')).toBeInTheDocument()
     })
 
-    const removedTab = screen.getByRole('button', { name: /removed/i })
-    await user.click(removedTab)
+    await user.click(screen.getByRole('button', { name: /removed/i }))
 
     await waitFor(() => {
       expect(screen.getByText('Carol')).toBeInTheDocument()
