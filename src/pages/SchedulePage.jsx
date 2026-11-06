@@ -10,6 +10,9 @@ import LoadingSpinner from '../components/LoadingSpinner'
 import RegionSelectionPrompt from '../components/RegionSelectionPrompt'
 import { getDayCellClasses, getShiftTimeReminder } from './scheduleRules'
 
+// Contact name used to mark a day the center is closed (black, no reminder).
+const NOT_OPEN_NAME = 'NOT OPEN'
+
 export default function SchedulePage() {
   const { regionName, isLoading } = useRegion()
   const activeRegionRef = useRef(regionName)
@@ -122,7 +125,7 @@ export default function SchedulePage() {
 
       setSelectedMember('')
       setIsModalOpen(false)
-      setReminder(getShiftTimeReminder(parseISO(selectedDate)))
+      if (member?.name !== NOT_OPEN_NAME) setReminder(getShiftTimeReminder(parseISO(selectedDate)))
       fetchData()
     } catch (error) {
       console.error('Error assigning shift:', error)

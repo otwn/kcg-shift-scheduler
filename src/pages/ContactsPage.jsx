@@ -7,7 +7,7 @@ import Toast from '../components/Toast'
 import LoadingSpinner from '../components/LoadingSpinner'
 import RegionSelectionPrompt from '../components/RegionSelectionPrompt'
 
-const COLORS = ['#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#ef4444', '#22c55e', '#3b82f6']
+const COLORS = ['#6366f1', '#ec4899', '#14b8a6', '#f59e0b', '#8b5cf6', '#ef4444', '#22c55e', '#3b82f6', '#000000']
 
 export default function ContactsPage() {
   const { regionName, isLoading } = useRegion()

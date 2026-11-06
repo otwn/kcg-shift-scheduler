@@ -23,8 +23,8 @@ export const CONFIG = {
     // extra staff. January 1st always substitutes as January's KRG day.
     krgSundayWeekOfMonth: 1,
 
-    // Year-end holiday block: from this day of December through Dec 31.
-    yearEndBlockStartDay: 24,
+    // Year-end holiday block: from this day of December through Dec 31 (greyed out).
+    yearEndBlockStartDay: 15,
 
     // Shift start/end times shown in the post-assign reminder, keyed by
     // weekday (0=Sun … 6=Sat). Days without an entry have no fixed time.
