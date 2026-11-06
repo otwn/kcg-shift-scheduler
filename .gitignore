@@ -14,6 +14,8 @@ coverage/
 # Local tooling output
 .netlify/
 .claude/settings.local.json
+.claude/logs/
+.claude/scheduled_tasks.lock
 .codex/logs/
 .codex/docs/research/
 
