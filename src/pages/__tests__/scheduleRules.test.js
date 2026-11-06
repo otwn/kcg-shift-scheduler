@@ -12,7 +12,9 @@ describe('getDayCellClasses', () => {
     expect(getDayCellClasses(new Date(2026, 0, 1))).toEqual(['first-sunday-krg'])
   })
 
-  it('greys out Dec 24 through Dec 31', () => {
+  it('greys out Dec 15 through Dec 31', () => {
+    expect(getDayCellClasses(new Date(2025, 11, 13))).not.toContain('no-shift-day') // Sat
+    expect(getDayCellClasses(new Date(2026, 11, 16))).toEqual(['no-shift-day']) // Wed
     expect(getDayCellClasses(new Date(2026, 11, 24))).toEqual(['no-shift-day'])
     expect(getDayCellClasses(new Date(2026, 11, 31))).toEqual(['no-shift-day'])
   })
